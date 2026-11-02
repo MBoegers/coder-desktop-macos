@@ -42,8 +42,8 @@ jobs:
         with:
           xcode-version: "26.5.0"
 
-      - name: Setup Nix
-        uses: ./.github/actions/nix-devshell
+      - name: Setup mise
+        uses: ./.github/actions/setup-mise
 
       - name: TEMP regenerate the lockfile
         run: make lockfile && git diff --stat
@@ -57,7 +57,6 @@ jobs:
           retention-days: 1
 
       - run: make test
-        shell: nix develop .#ci --command bash --noprofile --norc -eo pipefail {0}
 
   temp-release-build:
     name: TEMP release build
@@ -109,11 +108,10 @@ jobs:
         with:
           xcode-version: "26.5.0"
 
-      - name: Setup Nix
-        uses: ./.github/actions/nix-devshell
+      - name: Setup mise
+        uses: ./.github/actions/setup-mise
 
       - run: make fmt
-        shell: nix develop .#ci --command bash --noprofile --norc -eo pipefail {0}
 
   lint:
     name: lint
@@ -126,10 +124,9 @@ jobs:
           fetch-tags: true
           persist-credentials: false
 
-      - name: Setup Nix
-        uses: ./.github/actions/nix-devshell
+      - name: Setup mise
+        uses: ./.github/actions/setup-mise
 
       - run: make lint
-        shell: nix develop .#ci --command bash --noprofile --norc -eo pipefail {0}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
