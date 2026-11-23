@@ -45,8 +45,53 @@ jobs:
       - name: Setup Nix
         uses: ./.github/actions/nix-devshell
 
+      - name: TEMP regenerate the lockfile
+        run: make lockfile && git diff --stat
+        shell: nix develop .#ci --command bash --noprofile --norc -eo pipefail {0}
+
+      - name: TEMP upload the lockfile
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: package-resolved
+          path: Coder-Desktop/Package.resolved
+          retention-days: 1
+
       - run: make test
         shell: nix develop .#ci --command bash --noprofile --norc -eo pipefail {0}
+
+  temp-release-build:
+    name: TEMP release build
+    runs-on: ${{ github.repository_owner == 'coder' && 'depot-macos-26' || 'macos-26'}}
+    env:
+      DEPOT_XCODE_CACHE_ENABLED: 0
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          persist-credentials: false
+
+      - name: Switch XCode Version
+        uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1.7.0
+        with:
+          xcode-version: "26.5.0"
+
+      - name: Setup Nix
+        uses: ./.github/actions/nix-devshell
+
+      - run: make lockfile
+        shell: nix develop .#ci --command bash --noprofile --norc -eo pipefail {0}
+
+      - run: ./scripts/build.sh build/release
+        shell: nix develop .#ci --command bash --noprofile --norc -eo pipefail {0}
+
+      - name: Upload unsigned app
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: temp-unsigned-app
+          path: build/release/coder-desktop-unsigned.tar
+          retention-days: 1
 
   format:
     name: fmt
