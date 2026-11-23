@@ -47,7 +47,6 @@ jobs:
 
       - name: TEMP regenerate the lockfile
         run: make lockfile && git diff --stat
-        shell: nix develop .#ci --command bash --noprofile --norc -eo pipefail {0}
 
       - name: TEMP upload the lockfile
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -76,14 +75,27 @@ jobs:
         with:
           xcode-version: "26.5.0"
 
-      - name: Setup Nix
-        uses: ./.github/actions/nix-devshell
+      - name: Setup mise
+        uses: ./.github/actions/setup-mise
 
       - run: make lockfile
-        shell: nix develop .#ci --command bash --noprofile --norc -eo pipefail {0}
+
+      - name: TEMP tools
+        run: |
+          bash --version | head -1
+          command -v bash tar make sed awk find gh jq zip
+          tar --version
+          make --version | head -1
 
       - run: ./scripts/build.sh build/release
-        shell: nix develop .#ci --command bash --noprofile --norc -eo pipefail {0}
+
+      - name: TEMP inspect the tarball
+        run: |
+          tar -tvf build/release/coder-desktop-unsigned.tar | head -20
+          echo "AppleDouble entries: $(tar -tf build/release/coder-desktop-unsigned.tar | grep -c '/\._' || true)"
+          app="$(find build/Coder-Desktop.xcarchive/Products -maxdepth 4 -name 'Coder Desktop.app' -type d | head -n 1)"
+          echo "xattrs:"
+          xattr -r "$app" | awk -F': ' '{print $NF}' | sort | uniq -c || true
 
       - name: Upload unsigned app
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
